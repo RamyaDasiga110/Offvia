@@ -1,14 +1,15 @@
 import React from 'react';
-import { ItineraryDay } from '../types';
-import { Calendar, Coffee, Bed, DollarSign } from 'lucide-react';
+import { ItineraryDay, Currency } from '../types';
+import { Calendar, Coffee, Bed, HandCoins } from 'lucide-react';
 
 interface ItineraryProps {
   days: ItineraryDay[];
   destination: string;
   totalBudget: number;
+  currency: Currency;
 }
 
-export function Itinerary({ days, destination, totalBudget }: ItineraryProps) {
+export function Itinerary({ days, destination, totalBudget, currency }: ItineraryProps) {
   const totalSpent = days.reduce((acc, day) => acc + day.estimatedCost, 0);
 
   return (
@@ -18,7 +19,7 @@ export function Itinerary({ days, destination, totalBudget }: ItineraryProps) {
         <p className="text-indigo-700">Destination: {destination}</p>
         <p className="text-indigo-700">Duration: {days.length} days</p>
         <p className="text-indigo-700">
-          Budget: ${totalBudget} (Estimated: ${totalSpent})
+          Budget: {currency.symbol}{totalBudget} (Estimated: {currency.symbol}{totalSpent})
         </p>
       </div>
 
@@ -65,8 +66,8 @@ export function Itinerary({ days, destination, totalBudget }: ItineraryProps) {
 
               <div className="pt-2 border-t">
                 <p className="flex items-center gap-2 text-gray-700">
-                  <DollarSign className="w-4 h-4 text-indigo-600" />
-                  Estimated Cost: ${day.estimatedCost}
+                  <HandCoins className="w-4 h-4 text-indigo-600" />
+                  Estimated Cost: {currency.symbol}{day.estimatedCost}
                 </p>
               </div>
             </div>

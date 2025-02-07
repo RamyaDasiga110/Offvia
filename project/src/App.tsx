@@ -1,27 +1,30 @@
 import React from 'react';
-import { Plane } from 'lucide-react';
+import { Currency, Plane } from 'lucide-react';
 import { TravelForm } from './components/TravelForm';
 import { Itinerary } from './components/Itinerary';
 import { TravelFormData, ItineraryDay } from './types';
 import { Toaster, toast } from 'react-hot-toast';
-import OpenAI from 'openai';
 import { Mistral } from '@mistralai/mistralai';
+import { parse } from 'date-fns';
 
 // Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: 'your-api-key-here', // Replace with your actual API key
-  dangerouslyAllowBrowser: true // Note: In production, you should use a backend service
-});
+//const openai = new OpenAI({
+  //apiKey: 'your-api-key-here', // Replace with your actual API key
+ // dangerouslyAllowBrowser: true // Note: In production, you should use a backend service
+//});
 const apiKey = '5dqgm3UIAl6alHf4nrbidQlhyqiK5xLK';
 const client = new Mistral({apiKey: apiKey});
 
+interface ItineraryState {
+  days: ItineraryDay[];
+  destination: string;
+  totalBudget: number;
+  currency: typeof Currency;
+}
+
 function App() {
+  const [itinerary, setItinerary] = React.useState<ItineraryState | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [itinerary, setItinerary] = React.useState<{
-    days: ItineraryDay[];
-    destination: string;
-    totalBudget: number;
-  } | null>(null);
 
   const generateItinerary = async (formData: TravelFormData) => {
     setIsLoading(true);
@@ -35,7 +38,7 @@ function App() {
       "activities": string[],
       "meals": string[],
       "accommodation": string,
-      "estimatedCost": number
+      "estimatedCost": number (in ${formData.currency ? formData.currency.symbol : 'USD'})
     }`;
 
       
@@ -44,12 +47,9 @@ function App() {
         messages: [{role: 'user', content: prompt}]
       });
 
-      const response = completion.choices[0].message.content;
+      const response = completion.choices && completion.choices[0] && completion.choices[0].message.content;
       if (!response) throw new Error('No response from OpenAI');
-      const cleanedResponse = response
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim();
+      const cleanedResponse = (typeof response === 'string' ? response : '').replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       // For now, we'll still use mock data
       // In production, you would parse the OpenAI response into the correct format
       /*const mockItinerary: ItineraryDay[] = Array.from({ length: formData.numberOfDays }, (_, i) => ({
@@ -87,51 +87,50 @@ function App() {
         setItinerary({
           days: parsedItinerary,
           destination: formData.destination,
-          totalBudget: formData.budget
+          totalBudget: formData.budget,
+          currency: formData.currency
         });
+      } catch (error) {
+        console.error('Error generating itinerary:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Toaster position="top-right" />
         
-        toast.success('Itinerary generated successfully!');
-    } catch (error) {
-      toast.error('Failed to generate itinerary. Please try again.');
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Toaster position="top-right" />
-      
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-2">
-            <Plane className="w-8 h-8 text-indigo-600" />
-            <h1 className="text-2xl font-bold text-gray-900">Offvia</h1>
+        <header className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center gap-2">
+              <Plane className="w-8 h-8 text-indigo-600" />
+              <h1 className="text-2xl font-bold text-gray-900">Offvia</h1>
+            </div>
           </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Plan Your Journey</h2>
-            <TravelForm onSubmit={generateItinerary} isLoading={isLoading} />
-          </div>
-
-          <div className="space-y-6">
+        </header>
+  
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">Plan Your Journey</h2>
+              <TravelForm onSubmit={generateItinerary} isLoading={isLoading} />
+            </div>
+            
             {itinerary && (
-              <Itinerary
-                days={itinerary.days}
-                destination={itinerary.destination}
-                totalBudget={itinerary.totalBudget}
-              />
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <Itinerary
+                  days={itinerary.days}
+                  destination={itinerary.destination}
+                  totalBudget={itinerary.totalBudget}
+                  currency={itinerary.currency}
+                />
+              </div>
             )}
           </div>
-        </div>
-      </main>
-    </div>
-  );
+        </main>
+      </div>
+    );
 }
 
 export default App;
